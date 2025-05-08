@@ -149,10 +149,10 @@ def main():
         lr = scheduler.get_epoch_values(epoch)[0]
     
         train_loss = utils.train_multi_gpu(
-            model, train_loader, loss_func, optimizer, device, epoch+1, lr=lr, mixup=True, use_fp16=args["use_fp16"]
+            model, train_loader, loss_func, optimizer, device, epoch+1, lr=lr, mixup=True, use_fp16=args.use_fp16
         )
         valid_loss, valid_top1_acc, valid_top5_acc = utils.validation_multi_gpu(
-            model, valid_loader, loss_func, device, epoch+1, use_fp16=args["use_fp16"]
+            model, valid_loader, loss_func, device, epoch+1, use_fp16=args.use_fp16
         )
         model.zero_grad()
     
