@@ -56,7 +56,7 @@ mixup_args = {
     'num_classes': 10
     }
 
-def train(model, train_loader, loss_func, optimizer, device, epoch, lr=0.001, mixup=False):
+def train(model, train_loader, loss_func, optimizer, device, epoch, lr=0.001, mixup=False, use_fp16=False):
     model = model.to(device)
     optimizer = optimizer(model.parameters(), lr=lr)
     if mixup:
@@ -72,8 +72,13 @@ def train(model, train_loader, loss_func, optimizer, device, epoch, lr=0.001, mi
             inputs, targets = mixup_fn(inputs, targets)
         inputs, targets = inputs.to(device), targets.to(device)
         
-        outputs = model(inputs)
-        loss = loss_func(outputs, targets)
+        if use_fp16:
+            with torch.amp.autocast("cuda"):
+                outputs = model(inputs)
+                loss = loss_func(outputs, targets)
+        else:
+            outputs = model(inputs)
+            loss = loss_func(outputs, targets)
         
         optimizer.zero_grad()
         loss.backward()
@@ -83,7 +88,7 @@ def train(model, train_loader, loss_func, optimizer, device, epoch, lr=0.001, mi
         
     return losses / train_loader.dataset.__len__()
 
-def validation(model, valid_loader, loss_func, device, epoch):
+def validation(model, valid_loader, loss_func, device, epoch, use_fp16=False):
     model = model.to(device)
     
     losses = 0.0
@@ -95,8 +100,13 @@ def validation(model, valid_loader, loss_func, device, epoch):
         for inputs, targets in tqdm(valid_loader, desc='VALID: {}'.format(epoch)):
             inputs, targets = inputs.to(device), targets.to(device)
         
-            outputs = model(inputs)
-            loss = loss_func(outputs, targets)
+            if use_fp16:
+                with torch.amp.autocast("cuda"):
+                    outputs = model(inputs)
+                    loss = loss_func(outputs, targets)
+            else:
+                outputs = model(inputs)
+                loss = loss_func(outputs, targets)
         
             losses += loss.item()
             _, pred = outputs.topk(5, dim=1)
