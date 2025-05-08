@@ -33,6 +33,9 @@ parser.add_argument('--alpha', type=float)
 parser.add_argument('--save_dir', default='./outputs')
 parser.add_argument('--seed', type=int, default=428)
 
+# fp16 support by Qualeafclover
+parser.add_argument('--use_fp16', type=bool, default=False)
+
 args = parser.parse_args()
 
 def main():

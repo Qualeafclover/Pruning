@@ -108,7 +108,7 @@ def validation(model, valid_loader, loss_func, device, epoch):
     return losses / valid_loader.dataset.__len__(), top1_acc / valid_loader.dataset.__len__(), top5_acc / valid_loader.dataset.__len__()
 
 
-def train_multi_gpu(model, train_loader, loss_func, optimizer, device, epoch, lr=0.001, mixup=False):
+def train_multi_gpu(model, train_loader, loss_func, optimizer, device, epoch, lr=0.001, mixup=False, use_fp16=False):
     device = [i for i in range(device)]
     model = nn.DataParallel(model, device_ids=device).to('cuda:0')
 
@@ -124,8 +124,13 @@ def train_multi_gpu(model, train_loader, loss_func, optimizer, device, epoch, lr
             inputs, targets = mixup_fn(inputs, targets)
         inputs, targets = inputs.cuda(0), targets.cuda(0)
         
-        outputs = model(inputs)
-        loss = loss_func(outputs, targets)
+        if use_fp16:
+            with torch.amp.autocast("cuda"):
+                outputs = model(inputs)
+                loss = loss_func(outputs, targets)
+        else:
+            outputs = model(inputs)
+            loss = loss_func(outputs, targets)
         
         optimizer.zero_grad()
         loss.backward()
@@ -135,7 +140,7 @@ def train_multi_gpu(model, train_loader, loss_func, optimizer, device, epoch, lr
         
     return losses / train_loader.dataset.__len__()
 
-def validation_multi_gpu(model, valid_loader, loss_func, device, epoch):
+def validation_multi_gpu(model, valid_loader, loss_func, device, epoch, use_fp16=False):
     device = [i for i in range(device)]
     model = nn.DataParallel(model, device_ids=device).to('cuda:0')
     
@@ -148,8 +153,13 @@ def validation_multi_gpu(model, valid_loader, loss_func, device, epoch):
         for inputs, targets in tqdm(valid_loader, desc='VALID: {}'.format(epoch)):
             inputs, targets = inputs.cuda(0), targets.cuda(0)
         
-            outputs = model(inputs)
-            loss = loss_func(outputs, targets)
+            if use_fp16:
+                with torch.amp.autocast("cuda"):
+                    outputs = model(inputs)
+                    loss = loss_func(outputs, targets)
+            else:
+                outputs = model(inputs)
+                loss = loss_func(outputs, targets)
         
             losses += loss.item()
             _, pred = outputs.topk(5, dim=1)
