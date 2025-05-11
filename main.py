@@ -146,7 +146,7 @@ def main():
 
 
     for epoch in range(args.epochs):
-        lr = scheduler.get_epoch_values(epoch)[0]
+        lr = scheduler.optimizer.param_groups[0]['lr']
     
         train_loss = utils.train_multi_gpu(
             model, train_loader, loss_func, optimizer, device, epoch+1, lr=lr, mixup=True, use_fp16=args.use_fp16
