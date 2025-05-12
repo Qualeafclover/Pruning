@@ -56,7 +56,7 @@ mixup_args = {
     'num_classes': 10
     }
 
-def train(model, train_loader, loss_func, optimizer, device, epoch, lr=0.001, mixup=False, use_fp16=False):
+def train(model, train_loader, loss_func, optimizer, device, epoch, writer, lr=0.001, mixup=False, use_fp16=False):
     model = model.to(device)
     optimizer = optimizer(model.parameters(), lr=lr)
     if mixup:
@@ -67,7 +67,7 @@ def train(model, train_loader, loss_func, optimizer, device, epoch, lr=0.001, mi
     top5_acc = 0.0
     
     model.train()
-    for inputs, targets in tqdm(train_loader, desc='TRAIN: {}'.format(epoch)):
+    for i, (inputs, targets) in tqdm(enumerate(train_loader), desc='TRAIN: {}'.format(epoch)):
         if mixup:
             inputs, targets = mixup_fn(inputs, targets)
         inputs, targets = inputs.to(device), targets.to(device)
@@ -84,11 +84,12 @@ def train(model, train_loader, loss_func, optimizer, device, epoch, lr=0.001, mi
         loss.backward()
         optimizer.step()
         
+        writer.add_scalar('train/loss', loss.item(), epoch*len(train_loader.dataset)+i)
         losses += loss.item()
         
     return losses / train_loader.dataset.__len__()
 
-def validation(model, valid_loader, loss_func, device, epoch, use_fp16=False):
+def validation(model, valid_loader, loss_func, device, epoch, writer, use_fp16=False):
     model = model.to(device)
     
     losses = 0.0
@@ -113,7 +114,9 @@ def validation(model, valid_loader, loss_func, device, epoch, use_fp16=False):
             correct = pred.eq(targets.view(-1, 1).expand_as(pred))
             top1_acc += correct[:, :1].sum().item()
             top5_acc += correct[:, :5].sum().item()
-        
+    writer.add_scalar('valid/loss', losses / valid_loader.dataset.__len__(), epoch)
+    writer.add_scalar('valid/top1_acc', top1_acc / valid_loader.dataset.__len__(), epoch)
+    writer.add_scalar('valid/top5_acc', top5_acc / valid_loader.dataset.__len__(), epoch)
     model.zero_grad()
     return losses / valid_loader.dataset.__len__(), top1_acc / valid_loader.dataset.__len__(), top5_acc / valid_loader.dataset.__len__()
 

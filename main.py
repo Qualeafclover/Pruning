@@ -12,6 +12,8 @@ import utils
 import pruner
 import models
 
+from torch.utils.tensorboard import SummaryWriter
+
 parser = argparse.ArgumentParser()
 
 # model config
@@ -36,7 +38,8 @@ parser.add_argument('--seed', type=int, default=428)
 # fp16 support by Qualeafclover
 parser.add_argument('--use_fp16', type=bool, default=False)
 
-args = parser.parse_args()
+# tensorboard support
+args = parser.parse_args('--log-name', type=str, default='log')
 
 def main():
     device = torch.cuda.device_count()
@@ -144,15 +147,18 @@ def main():
     # training
     best_loss = float('inf')
 
-
+    writer = SummaryWriter(log_dir=os.path.join(save_path, args.log_name))
     for epoch in range(args.epochs):
         lr = scheduler.optimizer.param_groups[0]['lr']
+        writer.add_scalar('lr', lr, epoch)
     
         train_loss = utils.train_multi_gpu(
-            model, train_loader, loss_func, optimizer, device, epoch+1, lr=lr, mixup=True, use_fp16=args.use_fp16
+            model, train_loader, loss_func, optimizer, device, epoch+1, 
+            writer=writer, lr=lr, mixup=True, use_fp16=args.use_fp16
         )
         valid_loss, valid_top1_acc, valid_top5_acc = utils.validation_multi_gpu(
-            model, valid_loader, loss_func, device, epoch+1, use_fp16=args.use_fp16
+            model, valid_loader, loss_func, device, epoch+1, 
+            writer=writer,use_fp16=args.use_fp16
         )
         model.zero_grad()
     

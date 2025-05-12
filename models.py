@@ -1,6 +1,3 @@
-from importlib.util import module_for_loader
-from timm.models import create_model
-
 def mixer_rm_modules(model):
     num_blocks = len(model.blocks)
     
