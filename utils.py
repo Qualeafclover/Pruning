@@ -132,7 +132,8 @@ def train_multi_gpu(model, train_loader, loss_func, optimizer, device, epoch, wr
     losses = 0.0
     
     model.train()
-    for i, (inputs, targets) in tqdm(enumerate(train_loader), desc='TRAIN: {}'.format(epoch)):
+    i = 0
+    for inputs, targets in tqdm(train_loader, desc='TRAIN: {}'.format(epoch)):
         if mixup:
             inputs, targets = mixup_fn(inputs, targets)
         inputs, targets = inputs.cuda(0), targets.cuda(0)
@@ -151,6 +152,7 @@ def train_multi_gpu(model, train_loader, loss_func, optimizer, device, epoch, wr
         
         losses += loss.item()
         writer.add_scalar('train/loss', loss.item(), epoch*len(train_loader.dataset)+i)
+        i += 1
         
     return losses / train_loader.dataset.__len__()
 
