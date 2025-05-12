@@ -151,6 +151,7 @@ def main():
 
     writer = SummaryWriter(log_dir=os.path.join(save_path, args.log_name))
     for epoch in range(args.epochs):
+        scheduler.step(epoch)
         lr = scheduler.optimizer.param_groups[0]['lr']
         writer.add_scalar('lr', lr, epoch)
     
@@ -169,7 +170,9 @@ def main():
         history['valid_top5_acc'].append(valid_top5_acc)
         history['valid_loss'].append(valid_loss)
     
+        print('valid loss:', valid_loss)
         print('top1-acc:', valid_top1_acc)
+        print('top5-acc:', valid_top5_acc)
         if best_loss > valid_loss:
             best_loss = valid_loss
             history['best_epoch'] = epoch
@@ -177,6 +180,7 @@ def main():
             print('updated best loss!')
     
         print('best acc:', max(history['valid_top1_acc']))
+        
         
         torch.save(history, os.path.join(save_path, file_name))
 
