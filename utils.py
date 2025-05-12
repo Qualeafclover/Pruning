@@ -121,7 +121,7 @@ def validation(model, valid_loader, loss_func, device, epoch, writer, use_fp16=F
     return losses / valid_loader.dataset.__len__(), top1_acc / valid_loader.dataset.__len__(), top5_acc / valid_loader.dataset.__len__()
 
 
-def train_multi_gpu(model, train_loader, loss_func, optimizer, device, epoch, lr=0.001, mixup=False, use_fp16=False):
+def train_multi_gpu(model, train_loader, loss_func, optimizer, device, epoch, writer, lr=0.001, mixup=False, use_fp16=False):
     device = [i for i in range(device)]
     model = nn.DataParallel(model, device_ids=device).to('cuda:0')
 
@@ -132,7 +132,7 @@ def train_multi_gpu(model, train_loader, loss_func, optimizer, device, epoch, lr
     losses = 0.0
     
     model.train()
-    for inputs, targets in tqdm(train_loader, desc='TRAIN: {}'.format(epoch)):
+    for i, (inputs, targets) in tqdm(enumerate(train_loader), desc='TRAIN: {}'.format(epoch)):
         if mixup:
             inputs, targets = mixup_fn(inputs, targets)
         inputs, targets = inputs.cuda(0), targets.cuda(0)
@@ -150,10 +150,11 @@ def train_multi_gpu(model, train_loader, loss_func, optimizer, device, epoch, lr
         optimizer.step()
         
         losses += loss.item()
+        writer.add_scalar('train/loss', loss.item(), epoch*len(train_loader.dataset)+i)
         
     return losses / train_loader.dataset.__len__()
 
-def validation_multi_gpu(model, valid_loader, loss_func, device, epoch, use_fp16=False):
+def validation_multi_gpu(model, valid_loader, loss_func, device, epoch, writer, use_fp16=False):
     device = [i for i in range(device)]
     model = nn.DataParallel(model, device_ids=device).to('cuda:0')
     
@@ -179,6 +180,8 @@ def validation_multi_gpu(model, valid_loader, loss_func, device, epoch, use_fp16
             correct = pred.eq(targets.view(-1, 1).expand_as(pred))
             top1_acc += correct[:, :1].sum().item()
             top5_acc += correct[:, :5].sum().item()
-        
+    writer.add_scalar('valid/loss', losses / valid_loader.dataset.__len__(), epoch)
+    writer.add_scalar('valid/top1_acc', top1_acc / valid_loader.dataset.__len__(), epoch)
+    writer.add_scalar('valid/top5_acc', top5_acc / valid_loader.dataset.__len__(), epoch)
     model.zero_grad()
     return losses / valid_loader.dataset.__len__(), top1_acc / valid_loader.dataset.__len__(), top5_acc / valid_loader.dataset.__len__()
