@@ -39,9 +39,11 @@ parser.add_argument('--seed', type=int, default=428)
 parser.add_argument('--use_fp16', type=bool, default=False)
 
 # tensorboard support
-args = parser.parse_args('--log-name', type=str, default='log')
+parser.add_argument('--log-name', type=str, default='log')
+
 
 def main():
+    args = parser.parse_args()
     device = torch.cuda.device_count()
     print('num gpus:', device)
     torch.manual_seed(args.seed)
