@@ -84,7 +84,7 @@ def train(model, train_loader, loss_func, optimizer, device, epoch, writer, lr=0
         loss.backward()
         optimizer.step()
         
-        writer.add_scalar('train/loss', loss.item(), epoch*len(train_loader.dataset)+i)
+        writer.add_scalar('train/loss', loss.item(), epoch*len(train_loader)+i)
         losses += loss.item()
         
     return losses / train_loader.dataset.__len__()
@@ -151,7 +151,7 @@ def train_multi_gpu(model, train_loader, loss_func, optimizer, device, epoch, wr
         optimizer.step()
         
         losses += loss.item()
-        writer.add_scalar('train/loss', loss.item(), epoch*len(train_loader.dataset)+i)
+        writer.add_scalar('train/loss', loss.item(), epoch*len(train_loader)+i)
         i += 1
         
     return losses / train_loader.dataset.__len__()
